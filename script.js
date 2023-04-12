@@ -1,10 +1,6 @@
-const boxs = document.querySelectorAll('.box');
-const statusTxt = document.querySelector('#status');
-const btnRestart = document.querySelector('#restart');
-let x = "<img src='images/x.png'>";
-let o = "<img src='images/o.png'>";
-
-const win = [
+const X_class = 'x';
+const CIRCLE_class = 'circle'
+const Winning_Combinations = [
     [0, 1, 2],
     [3, 4, 5],
     [6, 7, 8],
@@ -13,80 +9,79 @@ const win = [
     [2, 5, 8],
     [0, 4, 8],
     [2, 4, 6]
-];
+]
+const cellElements = document.querySelectorAll('[data-cell]');
+const board = document.getElementById('board');
+const winningMessageElement = document.getElementById('winningMessage');
+const restartButton = document.getElementById('restart-button');
+const winningMessageTextElement = document.querySelector('[data-winning-message-text]')
+let circleTurn
 
-let options = ["", "", "", "", "", "", "", "", ""];
-let currentPlayer = x;
-let player = "X";
-let running = false;
-init();
-
-function init() {
-    boxs.forEach(box => box.addEventListener('click', boxClick));
-    btnRestart.addEventListener('click', restartGame);
-    statusTxt.textContent = `${player} Your Turn`;
-    running = true;
+startGame()
+restartButton.addEventListener('click', startGame)
+function startGame() {
+    circleTurn = false;
+    cellElements.forEach(cell => {
+        cell.classList.remove(X_class);
+        cell.classList.remove(CIRCLE_class);
+        cell.removeEventListener('click', handleClick)
+        cell.addEventListener('click', handleClick, { once: true });
+    })
+    setBoardHoverClass();
+    winningMessageElement.classList.remove('show')
 }
 
-function boxClick() {
-    const index = this.dataset.index;
-    if (options[index] != "" || !running) {
-        return;
-    }
-    updateBox(this, index);
-    checkWinner();
+function handleClick(event) {
+    const clickedCell = event.target;
 }
-
-function updateBox(box, index) {
-    options[index] = player;
-    box.innerHTML = currentPlayer;
-}
-
-function changePlayer() {
-    player = (player == 'X') ? "O" : "X";
-    currentPlayer = (currentPlayer == x) ? o : x;
-    statusTxt.textContent = `${player} Your Turn`;
-}
-
-function checkWinner() {
-    let isWon = false;
-    for (let i = 0; i < win.length; i++) {
-        const condition = win[i]; //[0,1,2]
-        const box1 = options[condition[0]]; //x
-        const box2 = options[condition[1]]; //''
-        const box3 = options[condition[2]]; //''
-        if (box1 == "" || box2 == "" || box3 == "") {
-            continue;
-        }
-        if (box1 == box2 && box2 == box3) {
-            isWon = true;
-            boxs[condition[0]].classList.add('win');
-            boxs[condition[1]].classList.add('win');
-            boxs[condition[2]].classList.add('win');
-        }
-    }
-
-    if (isWon) {
-        statusTxt.textContent = `${player} Won..`;
-        running = false;
-    } else if (!options.includes("")) {
-        statusTxt.textContent = `Game Draw..!`;
-        running = false;
+function handleClick(e) {
+    const cell = e.target;
+    const currentclass = circleTurn ? CIRCLE_class : X_class;
+    placeMark(cell, currentclass)
+    if (checkWin(currentclass)) {
+        endGame(false);
+    } else if (isDraw()) {
+        endGame(true);
     } else {
-        changePlayer();
+        swapTurn()
+        setBoardHoverClass()
     }
-
+}
+function endGame(draw) {
+    if (draw) {
+        winningMessageTextElement.innerText = 'Draw!'
+    }
+    else {
+        winningMessageTextElement.innerText = `${circleTurn ? "O's" : "X's"} Wins!`
+    }
+    winningMessageElement.classList.add('show')
+}
+function isDraw() {
+    return [...cellElements].every(cell => {
+        return cell.classList.contains(X_class) ||
+            cell.classList.contains(CIRCLE_class)
+    })
+}
+function placeMark(cell, currentclass) {
+    cell.classList.add(currentclass)
+}
+function swapTurn() {
+    circleTurn = !circleTurn
+}
+function setBoardHoverClass() {
+    board.classList.remove(X_class)
+    board.classList.remove(CIRCLE_class);
+    if (circleTurn) {
+        board.classList.add(CIRCLE_class)
+    } else {
+        board.classList.add(X_class)
+    }
 }
 
-function restartGame() {
-    options = ["", "", "", "", "", "", "", "", ""];
-    currentPlayer = x;
-    player = "X";
-    running = true;
-    statusTxt.textContent = `${player} Your Turn`;
-
-    boxs.forEach(box => {
-        box.innerHTML = "";
-        box.classList.remove('win');
-    });
+function checkWin(currentclass) {
+    return Winning_Combinations.some(combination => {
+        return combination.every(index => {
+            return cellElements[index].classList.contains(currentclass)
+        })
+    })
 }
